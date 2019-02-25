@@ -1,4 +1,5 @@
-﻿using Domain.Models;
+﻿using BLL.Models;
+using Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -8,6 +9,6 @@ namespace BLL.Managers.Interfaces
 {
     public interface IFlights
     {
-        List<Route> GetRoute(string src, string dest, out string msg);
+        Task<RouteResultModel> GetRoute(string src, string dest);
     }
 }

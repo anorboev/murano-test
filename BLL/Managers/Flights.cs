@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BLL.Managers.Interfaces;
+using BLL.Models;
 using Domain.Models;
 using FlightsWrapper.Interfaces;
 
@@ -15,12 +17,49 @@ namespace BLL.Managers
             _flightsApi = flightsApi;
         }
 
-        public List<Route> GetRoute(string src, string dest, out string msg)
+        public async Task<RouteResultModel> GetRoute(string src, string dest)
         {
-            msg = "";
+            var result = new RouteResultModel();
+            var airportCheck = await CheckAirports(src, dest);
+            if (!airportCheck.success)
+            {
+                result.IsRouteFound = false;
+                result.Message = airportCheck.message;
+            }
+
             List<Airline> airlines = new List<Airline>();
-            List< Route > routes = new List<Route>();
-            return  GetRoutes(src, dest, airlines, routes).Result;
+            List<Route> routes = new List<Route>();
+
+            result.Routes = await GetRoutes(src, dest, airlines, routes);
+            result.IsRouteFound = result.Routes.Any(x => x.DestAirport == dest);
+
+            return result;
+        }
+
+        private async Task<(bool success, string message)> CheckAirports(string src, string dest)
+        {
+            if (string.IsNullOrEmpty(src))
+            {
+                return (false, "Source airport name cannot be empty");
+            }
+            else if (string.IsNullOrEmpty(dest))
+            {
+                return (false, "Destination airport name cannot be empty");
+            }
+
+            var airports = await _flightsApi.GetAirports(src);
+            if (!airports.Any(x => x.Alias == src))
+            {
+                return (false, "Source airport not found");
+            }
+
+            airports = await _flightsApi.GetAirports(dest);
+            if (!airports.Any(x => x.Alias == dest))
+            {
+                return (false, "Destination airport not found");
+            }
+
+            return (true, "");
         }
 
         private async Task<List<Route>> GetRoutes(string src, string dest, List<Airline> airlines, List<Route> routes)
