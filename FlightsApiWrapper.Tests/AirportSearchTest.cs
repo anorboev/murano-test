@@ -23,7 +23,7 @@ namespace FlightsApiWrapper.Tests
         {
             List<Airport> airports = new List<Airport>();
             airports = await _flightsApi.GetAirports("");
-            Assert.Null(airports);
+            Assert.Empty(airports);
         }
 
         [Fact]
@@ -31,7 +31,7 @@ namespace FlightsApiWrapper.Tests
         {
             List<Airport> airports = new List<Airport>();
             airports = await _flightsApi.GetAirports("uz");
-            Assert.Null(airports);
+            Assert.Empty(airports);
         }
 
         [Fact]

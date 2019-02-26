@@ -21,21 +21,21 @@ namespace FlightsApiWrapper.Tests
         public async Task ShouldFailForEmptyString()
         {
             var routes = await _flightsApi.GetRoutes("");
-            Assert.Null(routes);
+            Assert.Empty(routes);
         }
 
         [Fact]
         public async Task ShouldFailForShortString()
         {
             var routes = await _flightsApi.GetRoutes("uz");
-            Assert.Null(routes);
+            Assert.Empty(routes);
         }
 
         [Fact]
         public async Task ShouldFailForLongString()
         {
             var routes = await _flightsApi.GetRoutes("uzbekistan");
-            Assert.Null(routes);
+            Assert.Empty(routes);
         }
 
         [Fact]

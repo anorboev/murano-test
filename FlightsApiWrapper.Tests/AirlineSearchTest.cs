@@ -20,14 +20,14 @@ namespace FlightsApiWrapper.Tests
         public async Task ShouldFailForEmptyString()
         {
             var airline = await _flightsApi.GetAirline("");
-            Assert.Null(airline);
+            Assert.Empty(airline);
         }
 
         [Fact]
         public async Task ShouldFailForShortString()
         {
             var airline = await _flightsApi.GetAirline("u");
-            Assert.Null(airline);
+            Assert.Empty(airline);
         }
 
         [Fact]

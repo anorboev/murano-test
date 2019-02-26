@@ -40,7 +40,7 @@ namespace FlightsWrapper
             var taskCompletionSource = new TaskCompletionSource<T>();
             client.ExecuteAsync<T>(request, response =>
             {
-                taskCompletionSource.SetResult(response.StatusCode == HttpStatusCode.OK ? response.Data : default(T));
+                taskCompletionSource.SetResult(response.StatusCode == HttpStatusCode.OK ? response.Data : new T());
             });
             return taskCompletionSource.Task;
         }
