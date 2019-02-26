@@ -8,6 +8,6 @@ namespace FlightsWrapper.Interfaces
     {
         Task<List<Airport>> GetAirports(string alias);
         Task<List<Route>> GetRoutes(string alias);
-        Task<Airline> GetAirline(string alias);
+        Task<List<Airline>> GetAirline(string alias);
     }
 }

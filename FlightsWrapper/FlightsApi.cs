@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Domain.Models;
@@ -26,18 +27,21 @@ namespace FlightsWrapper
             return ExecuteAsync<List<Route>>(client);
         }
 
-        public Task<Airline> GetAirline(string alias)
+        public Task<List<Airline>> GetAirline(string alias)
         {
             var url = BaseUrl + "api/Airline/" + alias;
             var client = new RestClient(url);
-            return ExecuteAsync<Airline>(client);
+            return ExecuteAsync<List<Airline>>(client);
         }
 
         private Task<T> ExecuteAsync<T>(RestClient client) where T : new()
         {
             var request = new RestRequest();
             var taskCompletionSource = new TaskCompletionSource<T>();
-            client.ExecuteAsync<T>(request, (response) => taskCompletionSource.SetResult(response.Data));
+            client.ExecuteAsync<T>(request, response =>
+            {
+                taskCompletionSource.SetResult(response.StatusCode == HttpStatusCode.OK ? response.Data : default(T));
+            });
             return taskCompletionSource.Task;
         }
     }
