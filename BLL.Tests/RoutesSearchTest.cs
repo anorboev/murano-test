@@ -5,6 +5,8 @@ using System;
 using BLL.Managers;
 using Xunit;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace BLL.Tests
 {
@@ -12,11 +14,14 @@ namespace BLL.Tests
     {
         private readonly IFlightsApi _flightsApi;
         private readonly IFlights _flights;
+        private readonly ILogger<Flights> _logger;
+
 
         public RoutesSearchTest()
         {
+            _logger = Mock.Of<ILogger<Flights>>();
             _flightsApi = new FlightsApi();
-            _flights = new Flights(_flightsApi);
+            _flights = new Flights(_flightsApi, _logger);
         }
 
         [Fact]
