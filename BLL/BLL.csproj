@@ -9,4 +9,10 @@
     <ProjectReference Include="..\FlightsWrapper\FlightsWrapper.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="Microsoft.Build.Framework">
+      <HintPath>C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.1\Microsoft.Build.Framework.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

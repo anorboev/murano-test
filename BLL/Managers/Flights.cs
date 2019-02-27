@@ -7,15 +7,18 @@ using BLL.Managers.Interfaces;
 using BLL.Models;
 using Domain.Models;
 using FlightsWrapper.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace BLL.Managers
 {
     public class Flights: IFlights
     {
         private readonly IFlightsApi _flightsApi;
-        public Flights(IFlightsApi flightsApi)
+        private readonly ILogger<Flights> _logger;
+        public Flights(IFlightsApi flightsApi, ILogger<Flights> logger)
         {
             _flightsApi = flightsApi;
+            _logger = logger;
         }
 
         public async Task<RouteResultModel> GetRoute(string src, string dest)
@@ -52,7 +55,7 @@ namespace BLL.Managers
                         break;
 
                     level++;
-                    List<RouteLevelModel> routeLevel = new List<RouteLevelModel>();
+                    List<RouteLevelModel> routeLevel;
 
                     var task = Task.Run(() =>
                     {
@@ -63,9 +66,10 @@ namespace BLL.Managers
                             if (state.IsStopped)
                                 return;
                             var currRoutes = GetRoutesAsync(route.Route.DestAirport, airlines, routesList).Result;
+                            var level1 = level;
                             routeLevel = currRoutes.Select(r => new RouteLevelModel()
                             {
-                                Level = level,
+                                Level = level1,
                                 Route = r,
                                 Parent = route
                             }).ToList();
@@ -97,6 +101,11 @@ namespace BLL.Managers
                 result.Routes.Reverse();
                 result.IsRouteFound = true;
             }
+            else
+            {
+                result.IsRouteFound = false;
+                result.Message = "Route not found";
+            }
 
             return result;
         }
@@ -108,19 +117,20 @@ namespace BLL.Managers
             {
                 return (false, "Source airport name cannot be empty");
             }
-            else if (string.IsNullOrEmpty(dest))
+
+            if (string.IsNullOrEmpty(dest))
             {
                 return (false, "Destination airport name cannot be empty");
             }
 
-            var airports = await _flightsApi.GetAirports(src);
-            if (!airports.Any(x => x.Alias == src))
+            var airports = await Retry(_flightsApi.GetAirports, src);
+            if (airports.All(x => x.Alias != src))
             {
                 return (false, "Source airport not found");
             }
 
-            airports = await _flightsApi.GetAirports(dest);
-            if (!airports.Any(x => x.Alias == dest))
+            airports = await Retry(_flightsApi.GetAirports, dest);
+            if (airports.All(x => x.Alias != dest))
             {
                 return (false, "Destination airport not found");
             }
@@ -133,7 +143,7 @@ namespace BLL.Managers
             var airline = airlines.FirstOrDefault(x => x.Alias == alias);
             if (airline != null)
                 return airline.Active;
-            airline = (await _flightsApi.GetAirline(alias))?.FirstOrDefault();
+            airline = (await Retry(_flightsApi.GetAirline, alias))?.FirstOrDefault();
             if (airline != null)
             {
                 airlines.Add(airline);
@@ -144,17 +154,34 @@ namespace BLL.Managers
 
         private async Task<List<Route>> GetRoutesAsync(string airport, ConcurrentBag<Airline> airlines, ConcurrentBag<RouteLevelModel> routes)
         {
-            List<Route> _routes = new List<Route>();
+            List<Route> resRoutes = new List<Route>();
             var route = routes.FirstOrDefault(x => x.Route.SrcAirport == airport);
             if (route == null)
             {
-                _routes = await _flightsApi.GetRoutes(airport);
+                resRoutes = await Retry(_flightsApi.GetRoutes, airport);
 
-                var taskList = _routes.Select(item => new { Item = item, PredTask = IsActiveAirlineAsync(item.Airline, airlines) }).ToList();
+                var taskList = resRoutes.Select(item => new { Item = item, PredTask = IsActiveAirlineAsync(item.Airline, airlines) }).ToList();
                 await Task.WhenAll(taskList.Select(x => x.PredTask));
-                _routes = taskList.Where(x => x.PredTask.Result).Select(x => x.Item).ToList();
+                resRoutes = taskList.Where(x => x.PredTask.Result).Select(x => x.Item).ToList();
             } 
-            return _routes;
+            return resRoutes;
+        }
+
+        private async Task<T> Retry<T>(Func<string, Task<T>> func, string alias, int retryCount = 3)
+        {
+            while (true)
+            {
+                try
+                {
+                    var result = await func(alias);
+                    return result;
+                }
+                catch(Exception ex) 
+                when (retryCount-- > 0)
+                {
+                    _logger.LogError($"{DateTime.Now} - MethodName: {func.Method.Name}, ParametrValue: {alias}, Exception Message: {ex.Message}");
+                }
+            }
         }
     }
 }
